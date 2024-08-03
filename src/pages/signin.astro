@@ -1,0 +1,94 @@
+---
+import { app } from "../firebase/server";
+import Layout from "../layouts/Layout.astro";
+import { getAuth } from "firebase-admin/auth";
+
+const auth = getAuth(app);
+
+if (Astro.cookies.has("__session")) {
+    const sessionCookie = Astro.cookies.get("__session")?.value;
+    const decodedCookie = await auth.verifySessionCookie(sessionCookie || "");
+    // Si hay una sesion activa, redirigir al dashboard
+    if (decodedCookie) {
+        return Astro.redirect("/dashboard");
+    }
+}
+---
+
+<Layout title="Signin">
+    <h1>Iniciar Sesion</h1>
+    <form action="/api/auth/signin" method="post">
+        <div class="mb-4">
+            <label for="email" class="block text-sm font-medium text-gray-300"
+                >Correo</label
+            >
+            <input
+                type="email"
+                id="email"
+                name="email"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
+            />
+        </div>
+        <div class="mb-4">
+            <label
+                for="password"
+                class="block text-sm font-medium text-gray-300"
+                >Contraseña</label
+            >
+            <input
+                type="password"
+                id="password"
+                name="password"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black"
+            />
+        </div>
+        <div class="mb-4">
+            <button
+                type="submit"
+                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+                Registrarse
+            </button>
+        </div>
+    </form>
+</Layout>
+<script>
+    import {
+        getAuth,
+        inMemoryPersistence,
+        signInWithEmailAndPassword,
+    } from "firebase/auth";
+    import { app } from "../firebase/client";
+
+    const auth = getAuth(app);
+    // This will prevent the browser from storing session data
+    auth.setPersistence(inMemoryPersistence);
+
+    const form = document.querySelector("form") as HTMLFormElement;
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const email = formData.get("email")?.toString();
+        const password = formData.get("password")?.toString();
+
+        if (!email || !password) {
+            return;
+        }
+        const userCredential = await signInWithEmailAndPassword(
+            auth,
+            email,
+            password,
+        );
+        const idToken = await userCredential.user.getIdToken();
+        const response = await fetch("/api/auth/signin", {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${idToken}`,
+            },
+        });
+
+        if (response.redirected) {
+            window.location.assign(response.url);
+        }
+    });
+</script>
