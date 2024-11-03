@@ -51,12 +51,46 @@ if (Astro.cookies.has("__session")) {
             </button>
         </div>
     </form>
+    <div class="w-80 flex flex-col items-center gap-1">
+        <div class="relative flex py-5 items-center w-1/4">
+            <div class="flex-grow border-t border-gray-400"></div>
+            <span class="flex-shrink mx-4 text-gray-400">O</span>
+            <div class="flex-grow border-t border-gray-400"></div>
+        </div>
+        <button
+            id="google"
+            class="px-4 py-2 border flex gap-2 border-slate-200 dark:border-slate-700 rounded-lg hover:border-slate-400 dark:hover:border-slate-500 hover:shadow transition duration-150 w-full"
+        >
+            <img
+                class="w-6 h-6"
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                loading="lazy"
+                alt="google logo"
+            />
+            <span>Google</span>
+        </button>
+        <button
+            id="facebook"
+            class="px-4 py-2 border flex gap-2 border-slate-200 dark:border-slate-700 rounded-lg hover:border-slate-400 dark:hover:border-slate-500 hover:shadow transition duration-150 w-full"
+        >
+            <img
+                class="w-6 h-6"
+                src="https://www.svgrepo.com/show/475647/facebook-color.svg"
+                loading="lazy"
+                alt="facebook logo"
+            />
+            <span>Facebook</span>
+        </button>
+    </div>
 </Layout>
 <script>
     import {
         getAuth,
         inMemoryPersistence,
         signInWithEmailAndPassword,
+        GoogleAuthProvider,
+        FacebookAuthProvider,
+        signInWithPopup,
     } from "firebase/auth";
     import { app } from "../firebase/client";
 
@@ -89,6 +123,44 @@ if (Astro.cookies.has("__session")) {
 
         if (response.redirected) {
             window.location.assign(response.url);
+        }
+    });
+
+    // Google Signin
+    const googleButton = document.getElementById("google");
+    googleButton?.addEventListener("click", async () => {
+        const provider = new GoogleAuthProvider();
+        const userCredential = await signInWithPopup(auth, provider);
+        const idToken = await userCredential.user.getIdToken();
+        const res = await fetch("/api/auth/signin", {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${idToken}`,
+            },
+        });
+        if (res.redirected) {
+            window.location.assign(res.url);
+        } else {
+            alert("Error al iniciar sesion con Google");
+        }
+    });
+
+    // Facebook Signin
+    const facebookButton = document.getElementById("facebook");
+    facebookButton?.addEventListener("click", async () => {
+        const provider = new FacebookAuthProvider();
+        const userCredential = await signInWithPopup(auth, provider);
+        const idToken = await userCredential.user.getIdToken();
+        const res = await fetch("/api/auth/signin", {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${idToken}`,
+            },
+        });
+        if (res.redirected) {
+            window.location.assign(res.url);
+        } else {
+            alert("Error al iniciar sesion con Facebook");
         }
     });
 </script>
